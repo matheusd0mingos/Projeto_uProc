@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+/home/matheus/platformio-espidf-aws-iot/build/CMakeFiles/bootloader
+/home/matheus/platformio-espidf-aws-iot/build/CMakeFiles/bootloader.rule
+/home/matheus/platformio-espidf-aws-iot/build/CMakeFiles/bootloader-complete.rule
+/home/matheus/platformio-espidf-aws-iot/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+/home/matheus/platformio-espidf-aws-iot/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/home/matheus/platformio-espidf-aws-iot/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/home/matheus/platformio-espidf-aws-iot/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/home/matheus/platformio-espidf-aws-iot/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/home/matheus/platformio-espidf-aws-iot/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/home/matheus/platformio-espidf-aws-iot/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
