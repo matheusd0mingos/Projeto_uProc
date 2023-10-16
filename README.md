@@ -100,3 +100,7 @@ Este arquivo implementa a conexão MQTT usando credenciais e certificados e tamb
 ---
 
 Esperamos que esta documentação detalhada ajude você a compreender melhor as funções e responsabilidades de cada arquivo em nosso projeto. Para informações mais detalhadas ou dúvidas específicas, consulte o conteúdo interno de cada arquivo ou entre em contato conosco.
+
+
+#### Agradecimentos especiais:
+Aos desenvolvedores do projeto https://github.com/xinwenfu/platformio-espidf-aws-iot/tree/main
