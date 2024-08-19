@@ -5,7 +5,7 @@ const KEY_PATH = "./private.pem.key";
 const CERT_PATH = "./certificate.pem.crt";
 const CA_PATH = "./aws-root-ca.pem";
 const CLIENT_ID = `iotconsole-2e1d5d63-6c16-4c44-8f31-22297daa0c595`; 
-const HOST_link = "apbitammihdhj-ats.iot.us-east-1.amazonaws.com";
+const HOST_link = "COLOQUE SEU HOST LINK";
 const HOST = `mqtts://${HOST_link}:8883`;
 
 const options = {
