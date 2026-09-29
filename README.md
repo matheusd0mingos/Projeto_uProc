@@ -1,106 +1,315 @@
-# Documentação do Projeto
+# uProc
 
-Bem-vindo à nossa documentação detalhada sobre as funções de cada arquivo em nosso projeto.
+Sistema embarcado baseado em **ESP32**, **FreeRTOS**, **MQTT** e **AWS IoT Core**, desenvolvido para demonstrar comunicação entre dispositivos IoT e serviços em nuvem.
 
-## Arquivos e Suas Funções
+O projeto utiliza o ESP32 como dispositivo conectado à internet, permitindo receber comandos remotamente por MQTT e executar ações físicas através de servomotores.
+
+## Visão geral
+
+O uProc estabelece uma comunicação entre três componentes principais:
+
+```text
+┌──────────────┐
+│  Aplicação   │
+│ / Serviço    │
+└──────┬───────┘
+       │
+       │ MQTT
+       ▼
+┌─────────────────┐
+│   AWS IoT Core  │
+└────────┬────────┘
+         │
+         │ MQTT / TLS
+         ▼
+┌─────────────────┐
+│      ESP32      │
+│                 │
+│    FreeRTOS     │
+│        │        │
+│        ▼        │
+│    Servomotor   │
+└─────────────────┘
+```
+
+O ESP32 conecta-se à rede Wi-Fi e estabelece uma conexão segura com o **AWS IoT Core** utilizando MQTT sobre TLS. A partir daí, o dispositivo pode receber mensagens publicadas em tópicos MQTT e executar ações correspondentes.
+
+## Funcionalidades
+
+* Conexão do ESP32 a uma rede Wi-Fi.
+* Comunicação MQTT com o AWS IoT Core.
+* Comunicação segura utilizando certificados TLS.
+* Inscrição em tópicos MQTT (`subscribe`).
+* Publicação de mensagens MQTT (`publish`).
+* Reconexão automática em caso de perda de conexão.
+* Processamento de mensagens recebidas pelo ESP32.
+* Controle de servomotores a partir de comandos recebidos.
+* Integração entre código embarcado em C e serviço baseado em Node.js.
+
+## Tecnologias
+
+| Tecnologia       | Utilização                        |
+| ---------------- | --------------------------------- |
+| **ESP32**        | Hardware embarcado                |
+| **C**            | Firmware                          |
+| **FreeRTOS**     | Gerenciamento de tarefas no ESP32 |
+| **ESP-IDF**      | Framework de desenvolvimento      |
+| **AWS IoT Core** | Comunicação e gerenciamento IoT   |
+| **MQTT**         | Protocolo de comunicação          |
+| **TLS**          | Comunicação segura                |
+| **Node.js**      | Cliente/serviço de integração     |
+| **JavaScript**   | Lógica do serviço MQTT            |
+
+## Arquitetura
+
+O fluxo principal de comunicação é:
+
+```text
+              Internet
+                  │
+                  │ MQTT/TLS
+                  ▼
+          ┌───────────────┐
+          │ AWS IoT Core  │
+          └───────┬───────┘
+                  │
+           ┌──────┴──────┐
+           │             │
+           ▼             ▼
+       ESP32          Node.js
+           │
+           ▼
+      FreeRTOS Task
+           │
+           ▼
+    MQTT Subscription
+           │
+           ▼
+    Command Processing
+           │
+           ▼
+      Servo Control
+```
+
+### Fluxo de comandos
+
+Quando uma mensagem é publicada no tópico MQTT ao qual o ESP32 está inscrito:
+
+```text
+Mensagem MQTT
+      │
+      ▼
+iot_subscribe_callback_handler()
+      │
+      ├── "quente"
+      ├── "morna"
+      └── "fria"
+              │
+              ▼
+        Controle do servo
+```
+
+Cada comando recebido pode provocar o posicionamento do servomotor em uma posição previamente definida.
+
+## Segurança
+
+A comunicação com o AWS IoT Core utiliza **TLS e certificados digitais** para autenticação do dispositivo.
+
+O firmware suporta diferentes formas de carregamento dos certificados, dependendo da configuração e versão utilizada do ESP-IDF.
+
+> **Importante:** certificados, chaves privadas, credenciais Wi-Fi e outros segredos não devem ser versionados no repositório.
+
+Para executar o projeto, configure essas informações de acordo com o ambiente utilizado.
+
+## Estrutura do projeto
+
+Os principais componentes são:
 
 ### `subscribe_publish_sample.c`
 
-#### Descrição do Código: subscribe_publish_sample.c
+Firmware principal do ESP32.
 
-##### Inclusões
+Responsabilidades:
 
-- Inclui várias bibliotecas padrão, como `<stdio.h>`, `<stdlib.h>`, entre outras.
-- Bibliotecas do framework FreeRTOS e do ESP32 são incluídas para permitir multitarefa, gerenciamento de WiFi e logs.
-- As bibliotecas do AWS IoT SDK são incluídas para permitir a comunicação com o AWS IoT Core.
+* Inicialização do Wi-Fi.
+* Gerenciamento de eventos de conexão.
+* Inicialização do cliente AWS IoT.
+* Conexão ao AWS IoT Core.
+* Subscribe em tópicos MQTT.
+* Publicação de mensagens.
+* Tratamento de mensagens recebidas.
+* Reconexão do cliente MQTT.
+* Integração com o controle dos servomotores.
 
-##### Definições
+Principais funções:
 
-- Diversas macros e constantes são definidas, como `MAX_LOG_LENGTH`, `EXAMPLE_WIFI_SSID` e `EXAMPLE_WIFI_PASS` para configuração e operação.
-- Há verificações condicionais para determinar a versão do ESP IDF e a maneira como os certificados são carregados (embutidos ou do sistema de arquivos).
+#### `initialise_wifi()`
 
-##### Funções
+Inicializa a conexão Wi-Fi e registra os handlers responsáveis pelo gerenciamento dos eventos de rede.
 
-###### event_handler()
+#### `event_handler()`
 
-- Esta função gerencia eventos WiFi, como conexão ao WiFi, obtenção de um endereço IP e desconexão do WiFi.
+Processa eventos relacionados à conexão Wi-Fi, como:
 
-###### iot_subscribe_callback_handler()
+* conexão;
+* obtenção de endereço IP;
+* desconexão.
 
-- Esta função é chamada quando uma mensagem é recebida no tópico ao qual o ESP32 está inscrito.
-- Quando a mensagem "quente", "fria" ou "morna" é recebida, uma ação é tomada para rotacionar um servo para uma posição específica.
+#### `aws_iot_task()`
 
-###### disconnectCallbackHandler()
+Principal tarefa relacionada à comunicação com o AWS IoT Core.
 
-- Esta função lida com desconexões do cliente MQTT, tentando reconectar se necessário.
+É responsável por:
 
-###### aws_iot_task()
+1. Inicializar o cliente MQTT.
+2. Estabelecer a conexão.
+3. Realizar subscriptions.
+4. Publicar mensagens.
+5. Processar a comunicação continuamente.
+6. Tratar reconexões.
 
-- Esta é a tarefa principal que inicializa o cliente AWS IoT, se conecta ao AWS IoT Core, se inscreve em um tópico e publica mensagens.
-- A tarefa mantém o cliente MQTT em execução, tratando a reconexão conforme necessário.
+#### `iot_subscribe_callback_handler()`
 
-###### initialise_wifi()
+Callback executado quando uma mensagem é recebida em um tópico MQTT.
 
-- Esta função inicializa a conexão WiFi do ESP32 e registra os manipuladores de eventos para gerenciar a conexão e a obtenção de um endereço IP.
+A mensagem recebida determina a ação realizada pelo servomotor.
 
-##### Observações
+#### `disconnectCallbackHandler()`
 
-- O código se conecta a uma rede WiFi usando as credenciais definidas e, em seguida, se conecta ao AWS IoT Core usando os certificados e a configuração fornecida.
-- Uma vez conectado ao AWS IoT Core, ele se inscreve em um tópico e espera por mensagens. Quando uma mensagem é recebida, a ação correspondente é tomada com base na mensagem.
-
-### `servo_control.h`
-
-**Função Principal:** Interface de controle dos servomotores.
-
-- Declarações de funções para movimentar os servomotores.
-- Declarações de constantes e variáveis relacionadas ao controle de servomotores.
-
-### `servo_control.c`
-
-**Função Principal:** Implementação do controle dos servomotores.
-
-- Inicialização dos servomotores.
-- Funções para mover servomotores para posições específicas.
-
-### `index.mjs`
-
-Este arquivo implementa a conexão MQTT usando credenciais e certificados e também exporta um manipulador de eventos que trata mensagens recebidas.
-
-#### Importações e constantes:
-
-- **MQTT e Sistema de Arquivos (fs)**: São importados os módulos `mqtt` e `fs` para manipulação da conexão MQTT e leitura dos certificados.
-  
-- **Constantes de Caminho e Host**: Definem o caminho dos certificados e chaves usados na conexão MQTT e o HOST para a conexão.
-
-#### Configurações e Conexão:
-
-- **Opções de Conexão (options)**: Configura as opções de conexão, incluindo client ID, certificados, protocolo, keepAlive e versão do protocolo.
-
-- **Inicialização e Conexão MQTT**: Utiliza o método `mqtt.connect` para estabelecer uma conexão com o broker MQTT.
-
-#### Eventos do Cliente MQTT:
-
-- **'connect'**: Loga uma mensagem quando conectado com sucesso ao broker MQTT.
-- **'message'**: Acionado quando uma mensagem é recebida. Loga o tópico e a mensagem.
-- **'error'**: Trata e loga erros durante a conexão MQTT.
-- **'close'**: Loga uma mensagem quando a conexão com o broker MQTT é fechada.
-- **'reconnect'**: Loga uma tentativa de reconexão com o broker MQTT.
-
-#### Função principal: `handler`
-
-- **Handler (manipulador)**: Esta função é acionada para lidar com eventos recebidos, como solicitações HTTP ou mensagens MQTT. O manipulador verifica a intenção do evento, e, no caso do "PostMessageIntent", tenta publicar uma mensagem no tópico MQTT.
-
-#### Funções Auxiliares:
-
-- **waitForConnection**: Esta função verifica periodicamente (a cada segundo) se o cliente MQTT está conectado, e rejeita a promessa se o número máximo de tentativas for atingido.
-
-- **generateResponse**: Gera uma resposta formatada com a versão e uma mensagem de texto para ser enviada como resposta ao invocador do manipulador.
-
+Responsável pelo tratamento de desconexões do cliente MQTT.
 
 ---
 
-Esperamos que esta documentação detalhada ajude você a compreender melhor as funções e responsabilidades de cada arquivo em nosso projeto. Para informações mais detalhadas ou dúvidas específicas, consulte o conteúdo interno de cada arquivo ou entre em contato conosco.
+### `servo_control.h`
 
+Interface do módulo responsável pelo controle dos servomotores.
 
-#### Agradecimentos especiais:
-Aos desenvolvedores do projeto https://github.com/xinwenfu/platformio-espidf-aws-iot/tree/main
+Define as funções e estruturas necessárias para utilização do módulo.
+
+### `servo_control.c`
+
+Implementação do controle dos servomotores.
+
+Responsável por:
+
+* inicialização;
+* configuração;
+* movimentação;
+* posicionamento dos servomotores.
+
+---
+
+### `index.mjs`
+
+Implementa o componente Node.js responsável pela comunicação MQTT.
+
+Responsabilidades:
+
+* carregamento dos certificados;
+* configuração do cliente MQTT;
+* conexão ao broker;
+* publicação de mensagens;
+* tratamento de eventos MQTT;
+* reconexão;
+* integração com o handler da aplicação.
+
+Principais eventos tratados:
+
+```text
+connect
+message
+error
+close
+reconnect
+```
+
+#### `handler`
+
+Manipulador responsável por processar eventos recebidos pela aplicação.
+
+Quando a intenção `PostMessageIntent` é identificada, uma mensagem pode ser publicada no tópico MQTT correspondente.
+
+#### `waitForConnection()`
+
+Aguarda o estabelecimento da conexão MQTT antes de realizar operações que dependem do cliente conectado.
+
+#### `generateResponse()`
+
+Gera a resposta utilizada pelo handler após o processamento da solicitação.
+
+## Comunicação MQTT
+
+O MQTT é utilizado como mecanismo de comunicação entre os componentes.
+
+Conceitualmente:
+
+```text
+Publisher
+    │
+    │ publish()
+    ▼
+┌───────────────┐
+│ AWS IoT Core  │
+└───────┬───────┘
+        │
+        │ subscribe()
+        ▼
+     ESP32
+```
+
+Isso permite desacoplar o dispositivo embarcado do componente responsável por gerar os comandos.
+
+## Execução
+
+### ESP32
+
+O firmware deve ser compilado utilizando o **ESP-IDF** e configurado com:
+
+* credenciais Wi-Fi;
+* endpoint do AWS IoT Core;
+* certificado do dispositivo;
+* chave privada;
+* certificado da autoridade certificadora;
+* tópicos MQTT utilizados pela aplicação.
+
+### Node.js
+
+Instale as dependências:
+
+```bash
+npm install
+```
+
+Configure os certificados e parâmetros necessários para conexão ao AWS IoT Core.
+
+Execute:
+
+```bash
+node index.mjs
+```
+
+> Os comandos exatos podem variar de acordo com a configuração utilizada no ambiente de desenvolvimento.
+
+## Conceitos demonstrados
+
+O projeto foi desenvolvido como um estudo prático de:
+
+* Internet das Coisas (IoT);
+* sistemas embarcados;
+* programação concorrente com FreeRTOS;
+* comunicação assíncrona;
+* protocolo MQTT;
+* comunicação segura utilizando TLS;
+* AWS IoT Core;
+* integração entre sistemas embarcados e aplicações Node.js;
+* controle de atuadores físicos a partir de comandos remotos.
+
+## Referência
+
+Parte da implementação foi baseada e adaptada a partir do projeto:
+
+https://github.com/xinwenfu/platformio-espidf-aws-iot
+
+## Status
+
+Projeto desenvolvido para fins de estudo e experimentação com **ESP32, AWS IoT e comunicação MQTT**.
